@@ -1,4 +1,7 @@
-
+/**
+ * ResQLink Backend Server
+ * Express + Socket.IO + Kafka Consumer
+ */
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
