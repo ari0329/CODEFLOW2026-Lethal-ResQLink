@@ -11,6 +11,10 @@ const kafka = new Kafka({
 const consumer = kafka.consumer({ groupId: "resqlink-backend-group" });
 
 async function startKafkaConsumer(io) {
+      if (process.env.KAFKA_ENABLED !== "true") {
+    console.log("[Kafka] Disabled — skipping consumer. Set KAFKA_ENABLED=true to enable.");
+    return;
+  }
   try {
     await consumer.connect();
     await consumer.subscribe({ topic: process.env.KAFKA_OUTPUT_TOPIC || "processed-alerts", fromBeginning: false });
