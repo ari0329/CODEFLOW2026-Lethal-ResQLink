@@ -116,3 +116,24 @@ resqlink/
 │
 └── nginx/                               # Reverse proxy (Pillar 4 - zero trust)
     └── nginx.conf
+
+
+
+
+
+
+cd ai-service
+
+py -3.11 -m venv myenv
+
+myenv\Scripts\activate
+
+pip install -r requirements.txt
+
+python training/train_classifier.py
+
+python training/train_ner.py
+
+python training/evaluate.py
+
+uvicorn main:app --reload
