@@ -1,0 +1,65 @@
+/* styles/global.css */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0a0c10;
+  color: #e8eaf0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar         { width: 4px; height: 4px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: #2a3347; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #3a4560; }
+
+/* Leaflet popup dark override */
+.leaflet-popup-content-wrapper {
+  background: #111520 !important;
+  border: 1px solid #2a3347 !important;
+  border-radius: 10px !important;
+  color: #e8eaf0 !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+}
+.leaflet-popup-tip { background: #111520 !important; }
+.leaflet-popup-close-button { color: #5a6580 !important; }
+
+/* Ticker animation */
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Pin pulse animation */
+@keyframes pinPulse {
+  0%   { transform: scale(1); opacity: 0.8; }
+  50%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+/* Focus outlines for accessibility */
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid #ff4757;
+  outline-offset: 2px;
+}
+
+/* Remove default button/input styles */
+button { font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+
+/* Leaflet z-index fix for dark theme */
+.leaflet-control-zoom a {
+  background: #111520 !important;
+  border-color: #2a3347 !important;
+  color: #9aa5bf !important;
+}
+.leaflet-control-zoom a:hover { background: #161b28 !important; color: #e8eaf0 !important; }
