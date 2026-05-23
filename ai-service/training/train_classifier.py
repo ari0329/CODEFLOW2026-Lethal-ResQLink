@@ -203,7 +203,7 @@ def main():
         warmup_steps=200,
         weight_decay=0.01,
 
-        eval_strategy="epoch",
+        evaluation_strategy="epoch",
         save_strategy="epoch",
 
         load_best_model_at_end=True,
