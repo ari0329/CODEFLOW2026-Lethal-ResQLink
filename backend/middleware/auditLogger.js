@@ -1,25 +1,24 @@
+"use strict";
 const AuditLog = require("../models/AuditLog");
-const { crypto: { encryptField } } = require("../config/security");
+const logger   = require("../utils/logger");
 
-async function auditLog(user, action, targetId, targetType, details = {}, req = null) {
-  try {
-    const ipAddress = req ? (req.headers["x-forwarded-for"] || req.socket.remoteAddress) : "unknown";
-    
-    const encryptedDetails = encryptField(JSON.stringify(details));
+/**
+ * Factory that returns middleware recording an audit event.
+ * Usage: router.patch("/:id/verify", protect, auditAction("VERIFY_ALERT","Alert"), handler)
+ */
+const auditAction = (action, resourceType) => async (req, _res, next) => {
 
-    await AuditLog.create({
-      userId: user.id || user._id,
-      userName: user.name,
-      role: user.role,
-      action,
-      targetId,
-      targetType,
-      ipAddress,
-      details: encryptedDetails,
-    });
-  } catch (err) {
-    console.error("Failed to write audit log:", err.message);
-  }
-}
+  AuditLog.record({
+    actor:        req.user?._id,
+    actorRole:    req.user?.role,
+    action,
+    resourceId:   req.params?.id,
+    resourceType,
+    ipAddress:    req.ip,
+    userAgent:    req.headers["user-agent"]?.substring(0, 200),
+    details:      { body: req.body, params: req.params, query: req.query },
+  }).catch(e => logger.warn("Audit log failed:", e.message));
+  next();
+};
 
-module.exports = { auditLog };
+module.exports = { auditAction };

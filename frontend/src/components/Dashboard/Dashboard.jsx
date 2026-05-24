@@ -1,145 +1,98 @@
-import { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { useAlerts } from '../../hooks/useAlert';
-import { useSocket } from '../../hooks/useSocket';
-import AlertFeed from './AlertFeed';
-import EmergencyMap from '../Map/EmergencyMap';
-import SeverityBadge from './SeverityBadge';
-
-const FILTERS = ['all', 'critical', 'high', 'medium', 'low'];
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { useAuth } from "../../App";
+import { useSocket } from "../../hooks/useSocket";
+import { useAlerts } from "../../hooks/useAlert";
+import StatsPanel from "./StatsPanel";
+import AlertFeed  from "./AlertFeed";
+import EmergencyMap from "../Map/EmergencyMap";
+import AlertDetail from "./AlertDetail";
 
 export default function Dashboard() {
-  const { alerts, loading, selected } = useAlerts();
-  useSocket();
+  const { user, logout } = useAuth();
+  const navigate         = useNavigate();
+  const socket           = useSocket();
+  const { alerts }       = useAlerts();
+  const selected         = useSelector(s => s.alerts.selected);
+  const [connected, setConnected] = useState(false);
 
-  const [filter, setFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  useEffect(() => {
+    if (!socket) return;
+    const onConnect    = () => setConnected(true);
+    const onDisconnect = () => setConnected(false);
+    socket.on("connect",    onConnect);
+    socket.on("disconnect", onDisconnect);
+    setConnected(socket.connected);
+    return () => { socket.off("connect", onConnect); socket.off("disconnect", onDisconnect); };
+  }, [socket]);
 
-  const filtered = alerts.filter(a => {
-    const matchSev  = filter === 'all' || a.severity === filter;
-    const matchText = !search || 
-      (a.cleanedText || '').toLowerCase().includes(search.toLowerCase()) ||
-      (a.locationText || '').toLowerCase().includes(search.toLowerCase());
-    return matchSev && matchText;
-  });
-
-  const counts = {
-    total:    alerts.length,
-    critical: alerts.filter(a => a.severity === 'critical').length,
-    active:   alerts.filter(a => a.status !== 'resolved').length,
-  };
+  const liveCount = alerts.filter(a => ["pending","verified","active"].includes(a.status)).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0d1117', color: '#e6edf3' }}>
-      
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '12px 20px', borderBottom: '1px solid #21262d',
-        background: '#0d1117', flexShrink: 0
-      }}>
-        <span style={{ fontSize: '24px' }}>🆘</span>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#e6edf3' }}>ResQLink</h1>
-          <p style={{ margin: 0, fontSize: '11px', color: '#8b949e' }}>Emergency Response Platform</p>
+    <div className="layout">
+      {/* Top Nav */}
+      <nav style={{ display:"flex", alignItems:"center", padding:"0 16px", height:52,
+                    background:"var(--bg-800)", borderBottom:"1px solid var(--border)",
+                    gap:12, flexShrink:0, zIndex:100 }}>
+        <span style={{ fontSize:"1.1rem", fontWeight:800, letterSpacing:"-0.5px" }}>
+          🚨 ResQLink
+        </span>
+        <div style={{ display:"flex", alignItems:"center", gap:4, marginLeft:8 }}>
+          <span className={`pulse pulse-${connected ? "green" : "red"}`} />
+          <span style={{ fontSize:"0.72rem", color:"var(--text-300)" }}>
+            {connected ? "Live" : "Reconnecting…"}
+          </span>
         </div>
 
-        {/* Stats */}
-        <div style={{ display: 'flex', gap: '8px', marginLeft: '24px' }}>
-          {[
-            { label: 'Total',    value: counts.total,    color: '#8b949e' },
-            { label: 'Critical', value: counts.critical, color: '#ff4757' },
-            { label: 'Active',   value: counts.active,   color: '#ffd700' },
-          ].map(s => (
-            <div key={s.label} style={{
-              background: '#161b22', border: '1px solid #30363d',
-              borderRadius: '8px', padding: '4px 12px', textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '10px', color: '#8b949e' }}>{s.label}</div>
+        <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
+          <Link to="/analytics">
+            <button className="btn btn-ghost" style={{ fontSize:"0.8rem" }}>📊 Analytics</button>
+          </Link>
+          {user && ["admin","responder"].includes(user.role) && (
+            <Link to="/responder">
+              <button className="btn btn-ghost" style={{ fontSize:"0.8rem" }}>🧑‍🚒 Responder</button>
+            </Link>
+          )}
+          {user ? (
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:"0.75rem", color:"var(--text-300)" }}>
+                {user.name} · <span style={{ color:"var(--blue)" }}>{user.role}</span>
+              </span>
+              <button className="btn btn-ghost" style={{ fontSize:"0.75rem" }} onClick={logout}>
+                Logout
+              </button>
             </div>
-          ))}
+          ) : (
+            <button className="btn btn-primary" style={{ fontSize:"0.8rem" }}
+                    onClick={() => navigate("/login")}>Sign In</button>
+          )}
         </div>
+      </nav>
 
-        {/* Live badge */}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{
-            background: '#1a2a1a', border: '1px solid #238636',
-            borderRadius: '20px', padding: '4px 12px',
-            fontSize: '12px', color: '#3fb950'
-          }}>● Live</span>
-          <button
-            onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
-            style={{
-              background: 'none', border: '1px solid #30363d', borderRadius: '6px',
-              padding: '4px 10px', fontSize: '12px', color: '#8b949e', cursor: 'pointer'
-            }}
-          >Logout</button>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-
-        {/* Left sidebar — alert feed */}
-        <div style={{
-          width: '340px', flexShrink: 0, display: 'flex', flexDirection: 'column',
-          borderRight: '1px solid #21262d', background: '#0d1117'
-        }}>
-          {/* Search + filter */}
-          <div style={{ padding: '12px', borderBottom: '1px solid #21262d' }}>
-            <input
-              style={{
-                width: '100%', background: '#161b22', border: '1px solid #30363d',
-                borderRadius: '6px', padding: '8px 12px', fontSize: '13px',
-                color: '#e6edf3', outline: 'none', boxSizing: 'border-box', marginBottom: '8px'
-              }}
-              placeholder="Search alerts..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              {FILTERS.map(f => (
-                <button key={f} onClick={() => setFilter(f)} style={{
-                  background: filter === f ? '#21262d' : 'none',
-                  border: `1px solid ${filter === f ? '#58a6ff' : '#30363d'}`,
-                  borderRadius: '4px', padding: '3px 8px',
-                  fontSize: '11px', color: filter === f ? '#58a6ff' : '#8b949e',
-                  cursor: 'pointer', textTransform: 'capitalize'
-                }}>{f}</button>
-              ))}
+      {/* Main content*/}
+      <div className="main">
+        {/* Sidebar */}
+        <div className="sidebar">
+          <StatsPanel liveCount={liveCount} />
+          <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+            <div style={{ padding:"10px 14px 6px", fontSize:"0.75rem", color:"var(--text-300)",
+                          textTransform:"uppercase", letterSpacing:".5px", fontWeight:600 }}>
+              Live Feed
+            </div>
+            <div style={{ flex:1, overflow:"hidden" }}>
+              <AlertFeed />
             </div>
           </div>
-
-          {/* Alert list */}
-          <AlertFeed alerts={filtered} loading={loading} selected={selected} />
         </div>
 
-        {/* Right — map */}
-        <div style={{ flex: 1, position: 'relative' }}>
-          <EmergencyMap alerts={filtered} selected={selected} />
-
-          {/* Selected alert detail overlay */}
+        {/* Map + detail overlay */}
+        <div className="map-area">
+          <EmergencyMap />
           {selected && (
-            <div style={{
-              position: 'absolute', bottom: '20px', right: '20px',
-              background: '#161b22', border: '1px solid #30363d',
-              borderRadius: '10px', padding: '16px', width: '280px',
-              zIndex: 1000, boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <SeverityBadge severity={selected.severity} />
-                <span style={{ fontSize: '11px', color: '#8b949e' }}>Score: {selected.urgencyScore}</span>
-              </div>
-              <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#e6edf3' }}>
-                {(selected.emergencyType || 'unknown').toUpperCase()}
-              </div>
-              <div style={{ fontSize: '12px', color: '#8b949e', lineHeight: 1.5, marginBottom: '8px' }}>
-                {(selected.cleanedText || '').slice(0, 150)}...
-              </div>
-              <div style={{ fontSize: '11px', color: '#58a6ff' }}>
-                📍 {selected.locationText || selected.address || 'Location unknown'}
-              </div>
+            <div style={{ position:"absolute", top:12, right:12, width:340, zIndex:1000,
+                          maxHeight:"calc(100vh - 80px)", overflowY:"auto" }}>
+              <AlertDetail />
             </div>
           )}
         </div>

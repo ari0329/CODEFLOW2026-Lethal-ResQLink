@@ -1,36 +1,25 @@
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { setAlerts, setLoading } from '../store/alertSlice';
-import axios from 'axios';
-import config from '../config';
+import { useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchAlerts, fetchSummary, setFilters } from "../store/alertSlice";
 
-export function useAlerts() {
+export const useAlerts = () => {
   const dispatch = useDispatch();
-  const alerts  = useSelector(s => s.alerts.alerts);
-  const loading = useSelector(s => s.alerts.loading);
-  const selected = useSelector(s => s.alerts.selected);
+  const { items, total, summary, loading, error, filters } = useSelector(s => s.alerts);
+
+  const load = useCallback((params) => {
+    dispatch(fetchAlerts(params || filters));
+  }, [dispatch, filters]);
 
   useEffect(() => {
-    async function fetchAlerts() {
-      dispatch(setLoading(true));
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`${config.API_URL}/api/alerts`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { limit: 100 }
-        });
-        dispatch(setAlerts([
-  { _id:'1', emergencyType:'flood', severity:'critical', cleanedText:'Water rising near colony', locationText:'Kolkata', urgencyScore:92, verified:true, coordinates:{ lat:22.5726, lng:88.3639 } },
-  { _id:'2', emergencyType:'fire',  severity:'high',     cleanedText:'Building on fire',         locationText:'Mumbai',  urgencyScore:78, verified:false, coordinates:{ lat:19.0760, lng:72.8777 } },
-]));
-      } catch (err) {
-        console.error('Failed to fetch alerts:', err.message);
-      } finally {
-        dispatch(setLoading(false));
-      }
-    }
-    fetchAlerts();
+    load();
+    dispatch(fetchSummary());
+    const timer = setInterval(() => dispatch(fetchSummary()), 30_000);
+    return () => clearInterval(timer);
+  }, [dispatch, load]);
+
+  const updateFilters = useCallback((patch) => {
+    dispatch(setFilters(patch));
   }, [dispatch]);
 
-  return { alerts, loading, selected };
-}
+  return { alerts: items, total, summary, loading, error, filters, load, updateFilters };
+};

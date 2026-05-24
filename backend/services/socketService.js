@@ -1,19 +1,31 @@
-let ioInstance = null;
+"use strict";
 
-function initSocketService(io) {
-  ioInstance = io;
-  
-  io.on("connection", (socket) => {
-    console.log(`[Socket] Client connected: ${socket.id}`);
+/**
+ * Broadcast a new alert to all relevant socket rooms.
+ * @param {object} io     - Socket.IO server instance
+ * @param {object} alert  - Saved Alert document (plain object)
+ */
+const broadcastNewAlert = (io, alert) => {
+  io.emit("alert:new", alert);
 
-    socket.on("disconnect", () => {
-      console.log(`[Socket] Client disconnected: ${socket.id}`);
-    });
-  });
-}
+  if (["critical","high"].includes(alert.severityLevel)) {
+    io.to("role:responder").to("role:admin").to("role:ngo").emit("alert:urgent", alert);
+  }
+  if (alert.location?.country) {
+    io.to(`region:${alert.location.country.toLowerCase()}`).emit("alert:region", alert);
+  }
+};
 
-function getIO() {
-  return ioInstance;
-}
+const broadcastAlertUpdate = (io, alertId, changes) => {
+  io.emit("alert:updated", { _id: alertId, ...changes });
+};
 
-module.exports = { initSocketService, getIO };
+const broadcastAlertDelete = (io, alertId) => {
+  io.emit("alert:deleted", { _id: alertId });
+};
+
+const notifyResponders = (io, message) => {
+  io.to("role:responder").to("role:admin").emit("system:notification", message);
+};
+
+module.exports = { broadcastNewAlert, broadcastAlertUpdate, broadcastAlertDelete, notifyResponders };

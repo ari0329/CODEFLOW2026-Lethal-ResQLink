@@ -1,48 +1,102 @@
+"use strict";
 const mongoose = require("mongoose");
 
-const locationSchema = new mongoose.Schema({
-    lat: Number,
-    lon: Number,
-    display_name: String,
-    source: { type: String, enum: ["extracted_coordinates", "nominatim", "google", "manual"] },
+const LocationSchema = new mongoose.Schema({
+    type: { type: String, default: "Point", enum: ["Point"] },
+    coordinates: { type: [Number], required: true },   // [lng, lat]
+    address: String,
+    landmark: String,
+    city: String,
+    country: String,
+    geocodedFrom: String,
+    confidence: { type: Number, min: 0, max: 1, default: 0 },
 }, { _id: false });
 
-const alertSchema = new mongoose.Schema({
-    source: { type: String, required: true, 
-    enum: ["twitter", "whatsapp", "email", "form", "manual", "facebook", "telegram", "unknown"] },
-    source_id: { type: String },
-    original_text: { type: String, required: true },
-    cleaned_text: String,
-    language: { type: String, default: "en" },
-    is_distress: { type: Boolean, default: true },
-    confidence: { type: Number, min: 0, max: 1 },
-    emergency_type: {
-        type: String,
-        enum: ["flood", "fire", "earthquake", "medical", "accident", "violence", "missing", "landslide", "cyclone", "unknown"],
-        default: "unknown",
+const EntitiesSchema = new mongoose.Schema({
+    locations: [String],
+    persons: [String],
+    organizations: [String],
+    victimCount: { type: Number, default: 0 },
+    landmarks: [String],
+    phoneNumbers: [String],
+    coordinates: [String],
+}, { _id: false });
+
+const AlertSchema = new mongoose.Schema({
+  
+    originalText: { type: String, required: true, maxlength: 5000 },
+    cleanedText: { type: String },
+    language: { type: String, default: "en", maxlength: 10 },
+    source: {
+        type: String, required: true,
+        enum: ["twitter", "facebook", "telegram", "whatsapp", "email", "sms", "manual", "api", "reddit", "news"]
     },
-    victim_count: String,
-    location: locationSchema,
-    entities: { type: mongoose.Schema.Types.Mixed, default: {} },
-    severity_score: { type: Number, min: 0, max: 100, default: 0 },
-    severity_level: { type: String, enum: ["CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"], default: "LOW" },
-    is_duplicate: { type: Boolean, default: false },
+    sourceUrl: { type: String, maxlength: 2048 },
+    sourceId: { type: String, index: true },          
+
+  
+    distressScore: { type: Number, min: 0, max: 1, default: 0 },
+    emergencyType: {
+        type: String, default: "other",
+        enum: ["flood", "fire", "earthquake", "accident", "medical", "violence",
+            "collapse", "landslide", "storm", "missing", "trapped", "other"]
+    },
+    emergencyTypeConfidence: { type: Number, min: 0, max: 1, default: 0 },
+
+   
+    extractedEntities: { type: EntitiesSchema, default: () => ({}) },
+
+  
+    location: LocationSchema,
+    region: { type: String, index: true },
+
+    
+    severityScore: { type: Number, min: 0, max: 100, default: 0 },
+    severityLevel: { type: String, enum: ["critical", "high", "medium", "low"], default: "medium" },
+    urgencyFlags: [{
+        type: String, enum: [
+            "multiple_victims", "children_involved", "elderly_involved",
+            "rapid_spread", "infrastructure_damage", "no_communication",
+        ]
+    }],
+
+    
     status: {
-        type: String,
-        enum: ["PENDING", "ACKNOWLEDGED", "IN_PROGRESS", "RESOLVED", "FALSE_ALARM"],
-        default: "PENDING",
+        type: String, default: "pending",
+        enum: ["pending", "verified", "active", "resolved", "fake", "duplicate"]
     },
-    assigned_to: { type: mongoose.Schema.Types.ObjectId, ref: "Responder" },
-    resolved_at: Date,
-    notes: String,
-}, {
-    timestamps: true,
-    toJSON: { virtuals: true },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    verifiedAt: Date,
+    isDuplicate: { type: Boolean, default: false },
+    duplicateOf: { type: mongoose.Schema.Types.ObjectId, ref: "Alert" },
+    isFake: { type: Boolean, default: false },
+    fakeConfidence: { type: Number, default: 0 },
+
+    
+    assignedResponders: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    responseTeam: String,
+    responseNotes: [{
+        note: { type: String, maxlength: 1000 },
+        by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        at: { type: Date, default: Date.now },
+    }],
+    resolvedAt: Date,
+    reportedAt: { type: Date, default: Date.now },
+}, { timestamps: true });
+
+
+AlertSchema.index({ location: "2dsphere" });
+AlertSchema.index({ status: 1, severityScore: -1 });
+AlertSchema.index({ createdAt: -1 });
+AlertSchema.index({ emergencyType: 1 });
+AlertSchema.index({ sourceId: 1, source: 1 }, { unique: true, sparse: true });
+
+
+AlertSchema.pre("save", function (next) {
+    if (this.location) {
+        this.region = this.location.city || this.location.country || "unknown";
+    }
+    next();
 });
 
-alertSchema.index({ "location.lat": 1, "location.lon": 1 });
-alertSchema.index({ severity_level: 1, status: 1 });
-alertSchema.index({ createdAt: -1 });
-alertSchema.index({ emergency_type: 1 });
-
-module.exports = mongoose.model("Alert", alertSchema);
+module.exports = mongoose.model("Alert", AlertSchema);

@@ -1,21 +1,12 @@
-import React from 'react';
+import React from "react";
 
-const SEV_COLOR = { critical: '#ff4757', high: '#ff8c42', medium: '#ffd700', low: '#00d4aa' };
+const ICONS = { critical:"🔴", high:"🟠", medium:"🟡", low:"🟢" };
 
-export default function SeverityBadge({ severity }) {
-  const color = SEV_COLOR[severity?.toLowerCase()] || '#5a6580';
+export default function SeverityBadge({ level, score }) {
   return (
-    <span style={{
-      display: 'inline-block',
-      padding: '2px 8px',
-      borderRadius: '4px',
-      fontSize: '10px',
-      fontWeight: 'bold',
-      textTransform: 'uppercase',
-      color: '#fff',
-      backgroundColor: color
-    }}>
-      {severity || 'low'}
+    <span className={`badge badge-${level}`}>
+      {ICONS[level] || "⚪"} {level?.toUpperCase()}
+      {score != null && <span style={{ opacity:.7, marginLeft:3 }}>·{score}</span>}
     </span>
   );
 }
