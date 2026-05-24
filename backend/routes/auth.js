@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const Responder = require("../models/Responder");
 
 // Generate JWT token
 const generateToken = (id, role) => {
@@ -19,8 +19,17 @@ router.post("/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
+    // Validate input
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await Responder.findOne({ email });
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -28,19 +37,19 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Create user
-    const user = await User.create({
+    // Create responder
+    const user = await Responder.create({
       name,
       email,
       password,
-      role: role || "user",
+      role: role || "responder",
     });
 
     const token = generateToken(user._id, user.role);
 
     res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message: "Registration successful",
       token,
       user: {
         id: user._id,
@@ -51,6 +60,7 @@ router.post("/register", async (req, res) => {
     });
   } catch (error) {
     console.error("Register error:", error);
+
     res.status(500).json({
       success: false,
       message: "Server error during registration",
@@ -73,8 +83,9 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Find user and include password field
-    const user = await User.findOne({ email }).select("+password");
+    // Find responder
+    const user = await Responder.findOne({ email }).select("+password");
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -83,15 +94,16 @@ router.post("/login", async (req, res) => {
     }
 
     // Check if account is active
-    if (!user.isActive) {
+    if (user.isActive === false) {
       return res.status(403).json({
         success: false,
-        message: "Account deactivated. Contact admin.",
+        message: "Account deactivated",
       });
     }
 
     // Verify password
     const isMatch = await user.matchPassword(password);
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -119,6 +131,7 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
+
     res.status(500).json({
       success: false,
       message: "Server error during login",
@@ -127,11 +140,12 @@ router.post("/login", async (req, res) => {
 });
 
 // ─────────────────────────────────────────
-// GET /api/auth/me  (get logged in user)
+// GET /api/auth/me
 // ─────────────────────────────────────────
 router.get("/me", async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -139,8 +153,11 @@ router.get("/me", async (req, res) => {
       });
     }
 
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
+
+    // Find logged in responder
+    const user = await Responder.findById(decoded.id);
 
     if (!user) {
       return res.status(404).json({
@@ -161,6 +178,8 @@ router.get("/me", async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Auth error:", error);
+
     res.status(401).json({
       success: false,
       message: "Invalid or expired token",
