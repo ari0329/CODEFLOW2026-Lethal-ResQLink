@@ -46,9 +46,7 @@ export default function Dashboard() {
         </div>
 
         <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
-          <Link to="/analytics">
-            <button className="btn btn-ghost" style={{ fontSize:"0.8rem" }}>📊 Analytics</button>
-          </Link>
+          
           {user && ["admin","responder"].includes(user.role) && (
             <Link to="/responder">
               <button className="btn btn-ghost" style={{ fontSize:"0.8rem" }}>🧑‍🚒 Responder</button>
