@@ -1,0 +1,22 @@
+{
+  "classifier": {
+    "base_model": "xlm-roberta-base",
+    "accuracy": 1.0,
+    "f1_distress": 1.0,
+    "precision_distress": 1.0,
+    "recall_distress": 1.0
+  },
+  "ner": {
+    "base_model": "xx_ent_wiki_sm",
+    "f1": 1.0,
+    "labels": [
+      "LOC_COORD",
+      "LOC_ADDRESS",
+      "LOC_LANDMARK",
+      "VICTIM_COUNT",
+      "EMERGENCY_TYPE",
+      "CONTACT",
+      "TIME_REF"
+    ]
+  }
+}
