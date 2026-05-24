@@ -31,7 +31,7 @@ export default function Dashboard() {
 
   return (
     <div className="layout">
-      {/* Top Nav */}
+      {/* ── Top Nav ──────────────────────────────────────────────────────── */}
       <nav style={{ display:"flex", alignItems:"center", padding:"0 16px", height:52,
                     background:"var(--bg-800)", borderBottom:"1px solid var(--border)",
                     gap:12, flexShrink:0, zIndex:100 }}>
@@ -64,13 +64,17 @@ export default function Dashboard() {
               </button>
             </div>
           ) : (
-            <button className="btn btn-primary" style={{ fontSize:"0.8rem" }}
-                    onClick={() => navigate("/login")}>Sign In</button>
+            <div style={{ display:"flex", gap:6 }}>
+              <button className="btn btn-ghost" style={{ fontSize:"0.8rem" }}
+                      onClick={() => navigate("/login")}>Sign In</button>
+              <button className="btn btn-primary" style={{ fontSize:"0.8rem" }}
+                      onClick={() => navigate("/signup")}>Sign Up</button>
+            </div>
           )}
         </div>
       </nav>
 
-      {/* Main content*/}
+      {/* ── Main content ─────────────────────────────────────────────────── */}
       <div className="main">
         {/* Sidebar */}
         <div className="sidebar">

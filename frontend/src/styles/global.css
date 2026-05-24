@@ -1,4 +1,4 @@
-
+/* ── ResQLink Design System ──────────────────────────────────────────────── */
 :root {
   --bg-900:    #0f172a;
   --bg-800:    #1e293b;
@@ -47,13 +47,13 @@ body {
 a { color: var(--blue); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track  { background: var(--bg-800); }
 ::-webkit-scrollbar-thumb  { background: var(--bg-600); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-500); }
 
-
+/* ── Utility classes ─────────────────────────────────────────────────────── */
 .card {
   background:    var(--bg-800);
   border:        1px solid var(--border);
@@ -112,18 +112,20 @@ a:hover { text-decoration: underline; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
+/* ── Layout ──────────────────────────────────────────────────────────────── */
 .layout { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .main   { display: flex; flex: 1; overflow: hidden; }
 .sidebar { width: 380px; min-width: 320px; display: flex; flex-direction: column;
            background: var(--bg-800); border-right: 1px solid var(--border); overflow: hidden; }
 .map-area { flex: 1; position: relative; overflow: hidden; }
 
+/* ── Leaflet overrides ───────────────────────────────────────────────────── */
 .leaflet-container { background: #1a2744 !important; }
 .leaflet-popup-content-wrapper { background: var(--bg-700) !important;
   color: var(--text-100) !important; border: 1px solid var(--border); border-radius: var(--radius-md) !important; }
 .leaflet-popup-tip { background: var(--bg-700) !important; }
 
-
+/* ── Form ────────────────────────────────────────────────────────────────── */
 .input {
   width: 100%;
   padding: 8px 12px;
@@ -137,9 +139,12 @@ a:hover { text-decoration: underline; }
 }
 .input:focus { border-color: var(--blue); }
 .input::placeholder { color: var(--text-500); }
+.input.input-error { border-color: var(--red); }
+.input.input-error:focus { border-color: var(--red); box-shadow: 0 0 0 2px rgba(239,68,68,.15); }
 
 select.input option { background: var(--bg-800); }
 
+/* ── Spinner ─────────────────────────────────────────────────────────────── */
 .spinner {
   width: 20px; height: 20px;
   border: 2px solid var(--bg-600);

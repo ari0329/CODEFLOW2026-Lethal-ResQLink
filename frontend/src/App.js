@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import axios from "axios";
-import Dashboard  from "./components/Dashboard/Dashboard";
-import Login      from "./components/Auth/Login";
-import AnalyticsPage from "./components/Analytics/AnalyticsPage";
+import Dashboard    from "./components/Dashboard/Dashboard";
+import Login        from "./components/Auth/Login";
+import Signup       from "./components/Auth/Signup";
+import AnalyticsPage  from "./components/Analytics/AnalyticsPage";
 import ResponderPanel from "./components/Responder/ResponderPanel";
 import ProtectedRoute from "./components/Auth/ProtectedRoute";
 import cfg from "./config";
@@ -48,7 +49,8 @@ export default function App() {
   return (
     <AuthCtx.Provider value={{ user, login, logout }}>
       <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
+        <Route path="/login"  element={user ? <Navigate to="/" /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to="/" /> : <Signup />} />
         <Route path="/" element={<Dashboard />} />
         <Route path="/analytics" element={
           <ProtectedRoute roles={["admin","analyst","responder","ngo"]}>
