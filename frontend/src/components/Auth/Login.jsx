@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../App";
 import cfg from "../../config";
 
@@ -66,13 +66,19 @@ export default function Login() {
           </button>
         </form>
 
-        <div style={{ marginTop:20, textAlign:"center", fontSize:"0.8rem", color:"var(--text-500)" }}>
-          Public dashboard available without login
-          <br />
-          <button className="btn btn-ghost" style={{ marginTop:10, width:"100%", justifyContent:"center" }}
-            onClick={() => navigate("/")}>
-            View Public Dashboard →
-          </button>
+        <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid var(--border)",
+                      textAlign: "center", fontSize: "0.8rem", color: "var(--text-500)" }}>
+          Don't have an account?{" "}
+          <Link to="/signup" style={{ color: "var(--blue)", fontWeight: 500 }}>
+            Create Account
+          </Link>
+          <div style={{ marginTop: 10 }}>
+            <button className="btn btn-ghost"
+              style={{ width: "100%", justifyContent: "center", fontSize: "0.78rem" }}
+              onClick={() => navigate("/")}>
+              View Public Dashboard →
+            </button>
+          </div>
         </div>
       </div>
     </div>
