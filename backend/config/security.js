@@ -1,49 +1,63 @@
 /**
- * Security Configuration — Pillar 4
- * Implements: Rate limiting, JWT, AES-256 encryption, audit logging
+ * Apply all security middleware to the Express app.
+ * Implements Pillar 4 — zero-trust, secure headers, rate limiting.
  */
-const rateLimit = require("express-rate-limit");
-const jwt = require("jsonwebtoken");
-const CryptoJS = require("crypto-js");
-
-const JWT_SECRET = process.env.JWT_SECRET || "resqlink-dev-jwt-secret-change-in-production";
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "resqlink-dev-encryption-key-32b!";
 
 
-const rateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 200,
-  message: { error: "Too many requests, please try again later." },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+"use strict";
+const helmet      = require("helmet");
+const rateLimit   = require("express-rate-limit");
+const morgan      = require("morgan");
+const logger      = require("../utils/logger");
 
-function signToken(payload, expiresIn = "12h") {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn, algorithm: "HS256" });
-}
+const applySecurityMiddleware = (app) => {
+  
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc:  ["'self'"],
+        scriptSrc:   ["'self'"],
+        styleSrc:    ["'self'", "'unsafe-inline'"],
+        imgSrc:      ["'self'", "data:", "https:"],
+        connectSrc:  ["'self'", "wss:", "ws:"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    hsts: { maxAge: 31_536_000, includeSubDomains: true, preload: true },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    noSniff: true,
+    xssFilter: true,
+    hidePoweredBy: true,
+  }));
 
-function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET);
-}
+
+  app.use(morgan("combined", {
+    stream: { write: msg => logger.http(msg.trim()) },
+  }));
 
 
-function encryptField(plaintext) {
-  if (!plaintext) return "";
-  return CryptoJS.AES.encrypt(String(plaintext), ENCRYPTION_KEY).toString();
-}
+  app.use("/api/", rateLimit({
+    windowMs: 15 * 60 * 1000,    // 15 min
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders:   false,
+    message: { error: "Too many requests. Try again in 15 minutes." },
+  }));
 
-function decryptField(ciphertext) {
-  if (!ciphertext) return "";
-  try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
-    return bytes.toString(CryptoJS.enc.Utf8);
-  } catch {
-    return "[decryption error]";
-  }
-}
 
-module.exports = {
-  security: { rateLimiter },
-  jwt: { signToken, verifyToken },
-  crypto: { encryptField, decryptField },
+  app.use("/api/auth", rateLimit({
+    windowMs: 60 * 60 * 1000,    // 1 hour
+    max: 20,
+    message: { error: "Too many auth attempts. Account temporarily restricted." },
+    skipSuccessfulRequests: true,
+  }));
+
+
+  app.use("/api/alerts", rateLimit({
+    windowMs: 60 * 1000,          // 1 min
+    max: 30,
+    message: { error: "Alert submission rate limit exceeded." },
+  }));
 };
+
+module.exports = { applySecurityMiddleware };
