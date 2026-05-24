@@ -74,6 +74,9 @@ async def startup_event():
     asyncio.create_task(pipeline.run())
     logger.info("ResQLink AI Service ready.")
 
+@app.get("/")
+async def root():
+    return {"message": "ResQLink AI Service Running"}
 
 @app.get("/health")
 async def health():
