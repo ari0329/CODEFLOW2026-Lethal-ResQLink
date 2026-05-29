@@ -4,12 +4,12 @@ import axios from "axios";
 import { formatDistanceToNow, format } from "date-fns";
 import SeverityBadge from "./SeverityBadge";
 import { selectAlert, verifyAlert } from "../../store/alertSlice";
-import { useAuth } from "../../App";
+
 import cfg from "../../config";
 
 export default function AlertDetail() {
   const dispatch  = useDispatch();
-  const { user }  = useAuth();
+ 
   const alert     = useSelector(s => s.alerts.selected);
   const [note, setNote]   = useState("");
   const [busy, setBusy]   = useState(false);

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 const Responder = require("../models/Responder");
 
 // Generate JWT token
@@ -18,6 +19,7 @@ const generateToken = (id, role) => {
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+     console.log("📩 Register attempt:", { name, email, role }); 
 
     // Validate input
     if (!name || !email || !password) {
@@ -37,13 +39,15 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    const user = await User.create({ name, email, password, role });
+
     // Create responder
-    const user = await Responder.create({
-      name,
-      email,
-      password,
-      role: role || "responder",
-    });
+     let responderProfile = null;
+    if (role === "responder") {
+      responderProfile = await Responder.create({
+        userId: user._id,
+      });
+    }
 
     const token = generateToken(user._id, user.role);
 
@@ -57,6 +61,13 @@ router.post("/register", async (req, res) => {
         email: user.email,
         role: user.role,
       },
+      responderProfile: responderProfile
+        ? {
+            id: responderProfile._id,
+            badgeNumber: responderProfile.badgeNumber,
+            status: responderProfile.status,
+          }
+        : null,
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -84,7 +95,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Find responder
-    const user = await Responder.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
       return res.status(401).json({
@@ -157,7 +168,7 @@ router.get("/me", async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Find logged in responder
-    const user = await Responder.findById(decoded.id);
+    const user = await User.findById(decoded.id);
 
     if (!user) {
       return res.status(404).json({

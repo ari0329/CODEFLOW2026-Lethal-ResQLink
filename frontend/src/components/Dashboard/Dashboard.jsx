@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useAuth } from "../../App";
+
 import { useSocket } from "../../hooks/useSocket";
 import { useAlerts } from "../../hooks/useAlert";
 import StatsPanel from "./StatsPanel";
@@ -10,7 +10,7 @@ import EmergencyMap from "../Map/EmergencyMap";
 import AlertDetail from "./AlertDetail";
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  
   const navigate         = useNavigate();
   const socket           = useSocket();
   const { alerts }       = useAlerts();

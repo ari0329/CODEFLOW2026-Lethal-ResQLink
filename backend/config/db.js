@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const logger   = require("../utils/logger");
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/resqlink";
+  const uri = process.env.MONGODB_URI;
   try {
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 8000,
@@ -12,12 +12,8 @@ const connectDB = async () => {
       minPoolSize: 2,
     });
     logger.info(`MongoDB connected → ${mongoose.connection.host}`);
-
-    mongoose.connection.on("error",        e  => logger.error("MongoDB error:",        e.message));
-    mongoose.connection.on("disconnected", () => logger.warn("MongoDB disconnected"));
-    mongoose.connection.on("reconnected",  () => logger.info("MongoDB reconnected"));
   } catch (err) {
-    logger.error("MongoDB initial connection failed:", err.message);
+    console.error("❌ FULL ERROR:", err); // ← changed this
     process.exit(1);
   }
 };

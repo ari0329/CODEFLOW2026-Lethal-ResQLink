@@ -1,86 +1,143 @@
-import React, { useState } from "react";
-import axios from "axios";
+import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../App";
-import cfg from "../../config";
+import { loginSuccess } from "../../store/authSlice";
 
-export default function Login() {
-  const { login }  = useAuth();
-  const navigate   = useNavigate();
-  const [form, setForm] = useState({ email:"", password:"" });
-  const [err,  setErr]  = useState("");
-  const [busy, setBusy] = useState(false);
+const Login = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const submit = async (e) => {
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setBusy(true); setErr("");
+    setLoading(true);
+    setError("");
+
     try {
-      const { data } = await axios.post(`${cfg.API_URL}/api/auth/login`, form);
-      login(data.token, data.user);
-      navigate("/");
-    } catch (ex) {
-      setErr(ex.response?.data?.error || "Login failed.");
-    } finally { setBusy(false); }
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setError(data.message);
+        return;
+      }
+
+      // Save to Redux store
+      dispatch(loginSuccess({ user: data.user, token: data.token }));
+
+      // Redirect based on role
+      if (data.user.role === "admin" || data.user.role === "responder") {
+        navigate("/dashboard");
+      } else if (data.user.role === "analyst") {
+        navigate("/analytics");
+      } else {
+        navigate("/");
+      }
+
+    } catch (err) {
+      setError("Server error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
-                  minHeight:"100vh", background:"var(--bg-900)", padding:16 }}>
-      <div className="card" style={{ width:"100%", maxWidth:400, padding:36 }}>
-        {/* Logo */}
-        <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ fontSize:32, marginBottom:8 }}>🚨</div>
-          <h1 style={{ fontSize:"1.5rem", fontWeight:700, color:"var(--text-100)" }}>ResQLink</h1>
-          <p style={{ color:"var(--text-300)", fontSize:"0.85rem", marginTop:4 }}>
-            Emergency Response Platform
-          </p>
-        </div>
+    <div style={styles.container}>
+      <h2 style={styles.title}>🔐 ResQLink Login</h2>
+      <p style={styles.subtitle}>For responders and administrators only</p>
 
-        <form onSubmit={submit} style={{ display:"flex", flexDirection:"column", gap:14 }}>
-          <div>
-            <label style={{ fontSize:"0.8rem", color:"var(--text-300)", marginBottom:4, display:"block" }}>
-              Email
-            </label>
-            <input className="input" type="email" required placeholder="responder@agency.org"
-              value={form.email} onChange={e => setForm(p => ({ ...p, email:e.target.value }))} />
-          </div>
-          <div>
-            <label style={{ fontSize:"0.8rem", color:"var(--text-300)", marginBottom:4, display:"block" }}>
-              Password
-            </label>
-            <input className="input" type="password" required placeholder="••••••••"
-              value={form.password} onChange={e => setForm(p => ({ ...p, password:e.target.value }))} />
-          </div>
+      {error && <p style={styles.error}>{error}</p>}
 
-          {err && (
-            <div style={{ background:"rgba(239,68,68,.15)", border:"1px solid rgba(239,68,68,.3)",
-                          borderRadius:"var(--radius-sm)", padding:"8px 12px",
-                          color:"var(--red)", fontSize:"0.8rem" }}>
-              {err}
-            </div>
-          )}
+      <form onSubmit={handleSubmit} style={styles.form}>
 
-          <button className="btn btn-primary" type="submit" disabled={busy}
-            style={{ marginTop:8, justifyContent:"center", padding:"10px" }}>
-            {busy ? <span className="spinner" style={{ width:16,height:16 }} /> : "Sign In"}
-          </button>
-        </form>
+        <label style={styles.label}>Email</label>
+        <input
+          style={styles.input}
+          type="email"
+          placeholder="your@email.com"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          required
+        />
 
-        <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid var(--border)",
-                      textAlign: "center", fontSize: "0.8rem", color: "var(--text-500)" }}>
-          Don't have an account?{" "}
-          <Link to="/signup" style={{ color: "var(--blue)", fontWeight: 500 }}>
-            Create Account
-          </Link>
-          <div style={{ marginTop: 10 }}>
-            <button className="btn btn-ghost"
-              style={{ width: "100%", justifyContent: "center", fontSize: "0.78rem" }}
-              onClick={() => navigate("/")}>
-              View Public Dashboard →
-            </button>
-          </div>
-        </div>
-      </div>
+        <label style={styles.label}>Password</label>
+        <input
+          style={styles.input}
+          type="password"
+          placeholder="••••••••"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          required
+        />
+
+        <button style={styles.button} disabled={loading}>
+          {loading ? "Logging in..." : "Login"}
+        </button>
+
+      </form>
+
+      <p style={styles.footer}>
+        Public emergency?{" "}
+        <Link to="/sos" style={{ color: "#dc2626" }}>
+          Send SOS instead →
+        </Link>
+      </p>
     </div>
   );
-}
+};
+
+const styles = {
+  container: {
+    maxWidth: "420px",
+    margin: "60px auto",
+    padding: "30px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+    fontFamily: "sans-serif",
+    backgroundColor: "#fff",
+  },
+  title: { color: "#1f2937", marginBottom: "4px" },
+  subtitle: { color: "#6b7280", fontSize: "14px", marginBottom: "20px" },
+  form: { display: "flex", flexDirection: "column", gap: "10px" },
+  label: { fontWeight: "600", fontSize: "14px", color: "#374151" },
+  input: {
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #d1d5db",
+    fontSize: "14px",
+  },
+  button: {
+    padding: "12px",
+    backgroundColor: "#1d4ed8",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "15px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    marginTop: "8px",
+  },
+  error: {
+    color: "#dc2626",
+    backgroundColor: "#fee2e2",
+    padding: "10px",
+    borderRadius: "8px",
+    fontSize: "14px",
+  },
+  footer: {
+    textAlign: "center",
+    marginTop: "20px",
+    fontSize: "14px",
+    color: "#6b7280",
+  },
+};
+
+export default Login;

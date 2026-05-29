@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../App";
+
 import cfg from "../../config";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ function PageWrapper({ children }) {
 
 // ── Main Signup Component ─────────────────────────────────────────────────────
 export default function Signup() {
-  const { login }  = useAuth();
+ 
   const navigate   = useNavigate();
 
   const [form,    setForm]    = useState(INITIAL_FORM);

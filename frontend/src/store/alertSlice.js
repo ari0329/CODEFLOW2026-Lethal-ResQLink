@@ -1,78 +1,147 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-import cfg from "../config";
 
-export const fetchAlerts = createAsyncThunk("alerts/fetchAll", async (params = {}) => {
-  const { data } = await axios.get(`${cfg.API_URL}/api/alerts`, {
-    params,
-    headers: { Authorization: `Bearer ${localStorage.getItem("rq_token")}` },
-  });
-  return data;
-});
+// ===============================
+// Async Thunks
+// ===============================
 
-export const fetchSummary = createAsyncThunk("alerts/summary", async () => {
-  const { data } = await axios.get(`${cfg.API_URL}/api/analytics/summary`);
-  return data;
-});
+// Fetch alerts
+export const fetchAlerts = createAsyncThunk(
+  "alerts/fetchAlerts",
+  async (_, thunkAPI) => {
+    try {
+      const response = await axios.get(
+        "http://localhost:4000/api/alerts"
+      );
 
-export const verifyAlert = createAsyncThunk("alerts/verify", async ({ id, status, notes }) => {
-  const { data } = await axios.patch(
-    `${cfg.API_URL}/api/alerts/${id}/verify`,
-    { status, notes },
-    { headers: { Authorization: `Bearer ${localStorage.getItem("rq_token")}` } }
-  );
-  return data.alert;
-});
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data || "Failed to fetch alerts"
+      );
+    }
+  }
+);
+
+// Verify alert
+export const verifyAlert = createAsyncThunk(
+  "alerts/verifyAlert",
+  async (alertId, thunkAPI) => {
+    try {
+      const response = await axios.patch(
+        `http://localhost:4000/api/alerts/${alertId}/verify`
+      );
+
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data || "Failed to verify alert"
+      );
+    }
+  }
+);
+
+// ===============================
+// Initial State
+// ===============================
+
+const initialState = {
+  alerts: [],
+  selectedAlert: null,
+
+  filters: {
+    severity: "",
+    status: "",
+    search: "",
+  },
+
+  loading: false,
+  error: null,
+};
+
+// ===============================
+// Slice
+// ===============================
 
 const alertSlice = createSlice({
   name: "alerts",
-  initialState: {
-    items:      [],
-    total:      0,
-    summary:    null,
-    loading:    false,
-    error:      null,
-    selected:   null,
-    filters:    { status: "", severity: "", type: "" },
-  },
+  initialState,
+
   reducers: {
-    addLiveAlert(state, { payload }) {
-      // Prepend and cap at 500
-      state.items = [payload, ...state.items.filter(a => a._id !== payload._id)].slice(0, 500);
-      state.total += 1;
+    addLiveAlert: (state, action) => {
+      state.alerts.unshift(action.payload);
     },
-    updateAlert(state, { payload }) {
-      const idx = state.items.findIndex(a => a._id === payload._id);
-      if (idx !== -1) state.items[idx] = { ...state.items[idx], ...payload };
+
+    updateAlert: (state, action) => {
+      const index = state.alerts.findIndex(
+        alert => alert._id === action.payload._id
+      );
+
+      if (index !== -1) {
+        state.alerts[index] = action.payload;
+      }
     },
-    removeAlert(state, { payload }) {
-      state.items = state.items.filter(a => a._id !== payload._id);
+
+    removeAlert: (state, action) => {
+      state.alerts = state.alerts.filter(
+        alert => alert._id !== action.payload
+      );
     },
-    selectAlert(state, { payload }) {
-      state.selected = payload;
+
+    clearAlerts: (state) => {
+      state.alerts = [];
     },
-    setFilters(state, { payload }) {
-      state.filters = { ...state.filters, ...payload };
+
+    setFilters: (state, action) => {
+      state.filters = {
+        ...state.filters,
+        ...action.payload,
+      };
     },
-    clearError(state) {
-      state.error = null;
+
+    selectAlert: (state, action) => {
+      state.selectedAlert = action.payload;
     },
   },
-  extraReducers: (b) => {
-    b.addCase(fetchAlerts.pending,  (s) => { s.loading = true; s.error = null; });
-    b.addCase(fetchAlerts.fulfilled,(s, { payload }) => {
-      s.loading = false; s.items = payload.alerts; s.total = payload.pagination.total;
-    });
-    b.addCase(fetchAlerts.rejected, (s, { error }) => { s.loading = false; s.error = error.message; });
 
-    b.addCase(fetchSummary.fulfilled, (s, { payload }) => { s.summary = payload; });
+  extraReducers: (builder) => {
+    builder
 
-    b.addCase(verifyAlert.fulfilled, (s, { payload }) => {
-      const idx = s.items.findIndex(a => a._id === payload._id);
-      if (idx !== -1) s.items[idx] = payload;
-    });
+      // Fetch Alerts
+      .addCase(fetchAlerts.pending, (state) => {
+        state.loading = true;
+      })
+
+      .addCase(fetchAlerts.fulfilled, (state, action) => {
+        state.loading = false;
+        state.alerts = action.payload || [];
+      })
+
+      .addCase(fetchAlerts.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Verify Alert
+      .addCase(verifyAlert.fulfilled, (state, action) => {
+        const index = state.alerts.findIndex(
+          alert => alert._id === action.payload._id
+        );
+
+        if (index !== -1) {
+          state.alerts[index] = action.payload;
+        }
+      });
   },
 });
 
-export const { addLiveAlert, updateAlert, removeAlert, selectAlert, setFilters, clearError } = alertSlice.actions;
+export const {
+  addLiveAlert,
+  updateAlert,
+  removeAlert,
+  clearAlerts,
+  setFilters,
+  selectAlert,
+} = alertSlice.actions;
+
 export default alertSlice.reducer;
